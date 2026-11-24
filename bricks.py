@@ -20,6 +20,14 @@ class Brick(Turtle):
         self.penup()
         self.goto(position)
 
+    def closest_point(self, x, y):
+        """Clamp (x, y) to the nearest point on or inside this brick's bounds."""
+        half_w = self.width / 2.0
+        half_h = self.height / 2.0
+        closest_x = max(self.xcor() - half_w, min(x, self.xcor() + half_w))
+        closest_y = max(self.ycor() - half_h, min(y, self.ycor() + half_h))
+        return closest_x, closest_y
+
 
 class BrickManager:
     """Builds the multi-row brick layout and resolves ball-to-brick collisions."""
@@ -79,30 +87,14 @@ class BrickManager:
                 )
                 self.bricks.append(brick)
 
-    def check_collision(self, ball, ball_radius=10):
-        """Check for ball-brick overlap, bounce the ball, and remove the hit brick.
+    def check_collision(self, ball, ball_radius=None):
+        """Check all bricks for a collision with the ball and remove any hit brick.
 
         Returns the destroyed Brick instance on collision, or None if no hit occurred.
         """
-        half_w = self.brick_width / 2.0
-        half_h = self.brick_height / 2.0
-
         # Iterate over a shallow copy so removing a brick mid-loop is safe
         for brick in list(self.bricks):
-            dx_dist = abs(ball.xcor() - brick.xcor())
-            dy_dist = abs(ball.ycor() - brick.ycor())
-
-            # Axis-aligned bounding box (AABB) overlap test
-            if dx_dist <= (half_w + ball_radius) and dy_dist <= (half_h + ball_radius):
-                overlap_x = (half_w + ball_radius) - dx_dist
-                overlap_y = (half_h + ball_radius) - dy_dist
-
-                # Bounce along the shallowest penetration axis (side vs top/bottom)
-                if overlap_x < overlap_y:
-                    ball.bounce_x()
-                else:
-                    ball.bounce_y()
-
+            if ball.check_brick_collision(brick, radius=ball_radius):
                 # Hide visually before removing; Turtle retains internal canvas refs
                 brick.hideturtle()
                 self.bricks.remove(brick)

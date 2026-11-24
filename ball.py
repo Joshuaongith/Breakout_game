@@ -7,7 +7,7 @@ from turtle import Turtle
 class Ball(Turtle):
     """Represents the game ball, managing its velocity vector and bounce maths."""
 
-    def __init__(self, base_speed=2.0):
+    def __init__(self, base_speed=2.0, radius=10):
         """Initialise the ball at the centre of the screen moving straight down."""
         super().__init__()
         self.color("white")
@@ -17,6 +17,7 @@ class Ball(Turtle):
         # Total speed in pixels per frame; x_move and y_move form the velocity vector
         self.base_speed = base_speed
         self.move_speed = base_speed
+        self.radius = radius
         self.x_move = 0.0
         self.y_move = -self.move_speed
 
@@ -41,6 +42,38 @@ class Ball(Turtle):
         scale = self.move_speed / old_speed
         self.x_move *= scale
         self.y_move *= scale
+
+    def check_brick_collision(self, brick, radius=None):
+        """Test circle-to-rectangle collision against a brick and bounce on impact.
+
+        Returns True if the ball collided with the brick, otherwise False.
+        """
+        check_radius = self.radius if radius is None else radius
+        closest_x, closest_y = brick.closest_point(self.xcor(), self.ycor())
+
+        # True circular check from the ball's centre to the nearest edge point
+        if self.distance(closest_x, closest_y) > check_radius:
+            return False
+
+        dx = self.xcor() - closest_x
+        dy = self.ycor() - closest_y
+
+        if dx == 0 and dy == 0:
+            # Fallback if high speed places the ball's centre inside the brick
+            overlap_x = (brick.width / 2.0) - abs(self.xcor() - brick.xcor())
+            overlap_y = (brick.height / 2.0) - abs(self.ycor() - brick.ycor())
+            if overlap_x < overlap_y:
+                self.bounce_x()
+            else:
+                self.bounce_y()
+        elif abs(dx) > abs(dy):
+            # Greater horizontal separation indicates a left or right side hit
+            self.bounce_x()
+        else:
+            # Greater or equal vertical separation indicates a top or underside hit
+            self.bounce_y()
+
+        return True
 
     def bounce_paddle(self, paddle):
         """Compute an outbound bounce angle based on where the ball hits the paddle."""
